@@ -12,7 +12,7 @@ my.ui <- fluidPage(
 
 my.server <- function(input, output) {
   output$cost <- renderText({
-    total.cost <- input$quant * input$cost
+    total.cost <- input$quant * input$price
     my.message <- paste0("$", total.cost)
     return(my.message)
   })
