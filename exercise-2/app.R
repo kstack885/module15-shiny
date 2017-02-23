@@ -1,78 +1,60 @@
 # Load the shiny, ggplot2, and dplyr libraries
-
-
+library(shiny)
+library(ggplot2)
+library(dplyr)
 # You will once again be working with the `diamonds` data set provided by ggplot2
 # Use dplyr's `sample_n()` function to get a random 3000 rows from the data set
 # Store this sample in a variable `diamonds.sample`
-
+diamonds.sample <- sample_n(diamonds, 3000)
 
 # For convenience store the `range()` of values for the `price` and `carat` values
 # for the ENTIRE diamonds dataset.
+price.range <- range(diamonds$price)
+carat.range <- range(diamonds$carat)
 
+ui <- fluidPage(
+  titlePanel("Diamond Viewer"),
+    sidebarLayout(
+      sidebarPanel(
+        sliderInput('price', label = "Price (in dollars)", min = price.range[1], max = price.range[2], value = price.range),
+        sliderInput('carat', label = "Carats", min = carat.range[1], max = carat.range[2], value = carat.range ),
+        checkboxInput('trendLine', label = "Show Trendline", value = TRUE),
+        selectInput('facet_by', label = "Facet by", choices = c("cut", "clarity", "color"))
+      ),
+      mainPanel(
+        plotOutput('plot'),
+        dataTableOutput('table')
+      )
+    )
+)
 
-
-# Define a UI using a fluidPage layout
-
-
-  # Include a `titlePanel` with the title "Diamond Viewer"
-
-
-  # Include a `sidebarLayout()`
-
-
-    # The `siderbarPanel()` should have the following control widgets:
-
-
-      # A sliderInput labeled "Price (in dollars)". This slider should let the user pick a range
-      # between the minimum and maximum price of the entire diamond data set
-
-
-      # A sliderInput labeled "Carats". This slider should let the user pick a range
-      # between the minimum and maximum carats of the entire diamond data set
-
-
-      # A checkboxInput labeled "Show Trendline". It's default value should be TRUE
-
-
-      # A slectInput labeled "Facet By", with choices "cut", "clarity" and "color"
-
-
-
-    # The `mainPanel()` should have the following reactive outputs:
-
-
-      # A plotOutput showing a plot based on the user specifications
-
-
-      # Bonus: a dataTableOutput showing a data table of relevant observations
-
-
-
-# Define a Server function for the app
-
-
+server <- function(input, output) {
+  
+  filtered <- reactive({
+    new.data <- diamonds.sample %>% 
+      filter(price > input$price[1] & price < input$price[2]) %>% 
+      filter(carat > input$carat[1] & carat < input$carat[2])
+    return(new.data)
+  })
   # Assign a reactive `renderPlot()` function to the outputted `plot`
+  output$plot <- renderPlot({
+    
+    plot <- ggplot(data = filtered(), mapping = aes(x = carat, y = price, color = cut)) +
+      geom_point() +
+      facet_wrap(input$facet_by)
+      
+    if(input$trendLine) {
+      plot <- plot + geom_smooth(se= FALSE)
+    }
+    return(plot)
+  })
+   
+  output$table <- renderDataTable({
+    return(filtered())
+  })
+}
 
-
-    # This function should take the `diamonds.sample` data set and filter it by the
-    # input price and carat ranges.
-    # Hint: use dplyr and multiple `filter()` operations
-
-    # The filtered data set should then be used in a ggplot2 scatter plot with the
-    # carat on the x-axis, the price on the y-axis, and color based on the clarity
-    # You should specify facets based on what feature the user selected to "facet by"
-    #   (hint: you can just pass that string to the `facet_wrap()` function!)
-
-
-    # Finally, if the "trendline" checkbox is selected, you should also include a
-    # geom_smooth geometry (with `se=FALSE`)
-    # Hint: you'll need to use an `if` statement, and save the `ggplot` as a variable
-    #      that you can then add the geom to.
-    # Be sure and return the completed plot!
-
-
-
-
+shinyApp(ui, server)
   # Bonus: Assign a reactive `renderDataTable()` function to the outputted table
   # You may want to use a `reactive()` variable to avoid needing to filter the data twice!
 
